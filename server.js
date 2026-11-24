@@ -660,7 +660,15 @@ app.get('/', (req, res) => {
       document.getElementById('pickSmall').classList.toggle('active', side === 'SMALL');
       document.getElementById('buySide').value = side;
     }
+let shownWinIds = JSON.parse(localStorage.getItem('bs_shown_wins') || '[]');
 
+function showWinNotification(amount) {
+  const box = document.createElement('div');
+  box.innerText = '🎉 Congratulations! आपने ₹' + Number(amount).toFixed(2) + ' विन किया है!';
+  box.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:999;background:linear-gradient(135deg,#16a34a,#06b6d4);color:#041f24;font-weight:900;padding:12px 18px;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,0.45);font-size:14px;max-width:92%;text-align:center;';
+  document.body.appendChild(box);
+  setTimeout(() => box.remove(), 4500);
+}
     function togglePin() {
       const inp = document.getElementById('adminPinInput');
       inp.type = inp.type === 'password' ? 'text' : 'password';
@@ -713,6 +721,13 @@ app.get('/', (req, res) => {
       const bonus = Number(currentUser.bonusGiven ?? 50);
       const posArr = currentUser.positions || [];
       const openHold = posArr.filter((p) => p.status === 'open').reduce((s, x) => s + Number(x.amount || 0), 0);
+      const freshWins = posArr.filter((p) => p.status === 'won' && !shownWinIds.includes(p.id));
+if (freshWins.length) {
+  const totalWon = freshWins.reduce((s, item) => s + (Number(item.amount || 0) + Number(item.pnl || 0)), 0);
+  freshWins.forEach((w) => shownWinIds.push(w.id));
+  localStorage.setItem('bs_shown_wins', JSON.stringify(shownWinIds.slice(-100)));
+  showWinNotification(totalWon);
+}
       const netPnl = +((wallet + openHold) - bonus).toFixed(2);
       const sign = netPnl >= 0 ? '+' : '';
       const cls = netPnl >= 0 ? 'pos' : 'neg';
