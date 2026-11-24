@@ -330,6 +330,10 @@ function getAdminData(db) {
     const openAmt = (u.positions || [])
       .filter((p) => p.status === 'open')
       .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+     const deposits = (db.deposits || []).slice().reverse().map((dep) => ({
+    ...dep,
+    currentBalance: db.users[dep.username] ? +Number(db.users[dep.username].wallet || 0).toFixed(2) : 0
+  }));
     return {
       username: u.username,
       wallet: +Number(u.wallet || 0).toFixed(2),
@@ -341,13 +345,19 @@ function getAdminData(db) {
     ...w,
     currentBalance: db.users[w.username] ? +Number(db.users[w.username].wallet || 0).toFixed(2) : 0
   }));
-
+  const deposits = (db.deposits || []).slice().reverse().map((dep) => ({
+    ...dep,
+    currentBalance: db.users[dep.username] ? +Number(db.users[dep.username].wallet || 0).toFixed(2) : 0
+  }));
+  
   return {
     ok: true,
     game: db.game,
     adminEmail: ADMIN_EMAIL,
     usersList,
-    withdrawals
+    withdrawals,
+      deposits
+    
   };
 }
 
@@ -401,6 +411,22 @@ app.post('/api/admin', (req, res) => {
     }
     delete db.users[u];
   } else if (type === 'reviewWithdrawal') {
+      } else if (type === 'reviewDeposit') {
+    const dep = (db.deposits || []).find((x) => x.id === withdrawalId);
+    if (!dep) return res.status(404).json({ error: 'डिपॉजिट रिक्वेस्ट नहीं मिली' });
+    if (dep.status !== 'pending') return res.status(400).json({ error: 'यह रिक्वेस्ट पहले ही पूरी हो चुकी है' });
+
+    if (action === 'approve') {
+      dep.status = 'approved';
+      if (db.users[dep.username]) {
+        const creditAmt = Number(dep.totalCredit || dep.amount || 0);
+        db.users[dep.username].wallet = +(Number(db.users[dep.username].wallet || 0) + creditAmt).toFixed(2);
+      }
+    } else if (action === 'reject') {
+      dep.status = 'rejected';
+    } else {
+      return res.status(400).json({ error: 'गलत विकल्प' });
+    }
     const wd = db.withdrawals.find((w) => w.id === withdrawalId);
     if (!wd) return res.status(404).json({ error: 'Request nahi mili' });
     if (wd.status !== 'pending') return res.status(400).json({ error: 'Request pehle hi process ho chuki hai' });
@@ -734,6 +760,10 @@ app.get('/', (req, res) => {
           <div class="item-box">
             <b>5. Withdrawal Requests (Balance, Amount &amp; UPI)</b>
             <div id="adminWithdrawalsList" style="margin-top:6px"></div>
+          </div>
+                    <div class="item-box">
+            <b>6. डिपॉजिट रिक्वेस्ट और बोनस मंजूरी (UTR, रकम और बैलेंस)</b>
+            <div id="adminDepositsList" style="margin-top:6px"></div>
           </div>
 
           <div id="adminMsg" class="pos" style="margin-top:6px"></div>
@@ -1073,6 +1103,19 @@ if (freshWins.length) {
               '<div style="margin-top:6px">' + btns + '</div></div>';
           }).join('')
         : '<div class="muted">Koi withdrawal request nahi hai.</div>';
+              document.getElementById('adminDepositsList').innerHTML = (d.deposits || []).length
+        ? d.deposits.map((dep) => {
+            const btns = dep.status === 'pending'
+              ? '<button class="ok" style="padding:5px 9px" onclick="decideDep(\\'' + dep.id + '\\', \\'approve\\')">मंज़ूर करें व ₹' + dep.totalCredit + ' जोड़ें</button> ' +
+                '<button class="danger" style="padding:5px 9px" onclick="decideDep(\\'' + dep.id + '\\', \\'reject\\')">अस्वीकार करें</button>'
+              : '<b>' + dep.status.toUpperCase() + '</b>';
+            return '<div class="item-box">' +
+              '<b>यूज़र:</b> @' + dep.username + ' | <b>मौजूदा बैलेंस:</b> ₹' + dep.currentBalance + '<br>' +
+              '<b>डिपॉजिट:</b> ₹<b>' + dep.amount + '</b> (+' + dep.bonusPct + '% बोनस = कुल <b>₹' + dep.totalCredit + '</b>) | <b>UTR:</b> <b>' + dep.utrId + '</b><br>' +
+              '<span class="muted">' + dep.createdAt + '</span><br>' +
+              '<div style="margin-top:6px">' + btns + '</div></div>';
+          }).join('')
+        : '<div class="muted">अभी कोई डिपॉजिट रिक्वेस्ट नहीं है।</div>';
     }
 
     async function changeMode(mode) {
@@ -1109,6 +1152,11 @@ if (freshWins.length) {
       const d = await adminAction({ type: 'reviewWithdrawal', withdrawalId, action });
       if (d) document.getElementById('adminMsg').innerText = 'Withdrawal ' + action + 'd';
     }
+        async function decideDep(withdrawalId, action) {
+      const d = await adminAction({ type: 'reviewDeposit', withdrawalId, action });
+      if (d) document.getElementById('adminMsg').innerText = action === 'approve' ? 'डिपॉजिट मंज़ूर और बैलेंस जुड़ गया' : 'डिपॉजिट अस्वीकार किया गया';
+    }
+    
 
     const savedSession = JSON.parse(localStorage.getItem('bs_proj_u') || 'null');
     if (savedSession) {
