@@ -166,6 +166,67 @@ app.get('/api/me/:username', (req, res) => {
   }
   const myWithdrawals = db.withdrawals.filter((w) => w.username === username).slice(-10).reverse();
   res.json({ user: db.users[username], withdrawals: myWithdrawals });
+  const DEPOSIT_UPI_ID = 'Jaatvipippb@axl';
+
+function calcDepositBonus(amount) {
+  const amt = Number(amount);
+  if (amt === 100) return { bonusPct: 5, bonusAmt: 5, totalCredit: 105 };
+  if (amt === 300) return { bonusPct: 12, bonusAmt: 36, totalCredit: 336 };
+  if (amt === 500) return { bonusPct: 25, bonusAmt: 125, totalCredit: 625 };
+  return { bonusPct: 0, bonusAmt: 0, totalCredit: amt };
+}
+
+app.get('/api/deposit-info', (req, res) => {
+  res.json({
+    upiId: DEPOSIT_UPI_ID,
+    minAmount: 100,
+    maxAmount: 500,
+    plans: [
+      { amount: 100, bonusPct: 5, bonusAmt: 5, totalCredit: 105 },
+      { amount: 300, bonusPct: 12, bonusAmt: 36, totalCredit: 336 },
+      { amount: 500, bonusPct: 25, bonusAmt: 125, totalCredit: 625 }
+    ]
+  });
+});
+
+app.post('/api/deposit', (req, res) => {
+  const { username, password, amount, utrId } = req.body;
+  const u = String(username || '').trim().toLowerCase();
+  const amt = Number(amount);
+  const utr = String(utrId || '').trim();
+
+  const db = readDb();
+  const user = db.users[u];
+  if (!user || user.password !== password) {
+    return res.status(401).json({ error: 'Pehle login karein' });
+  }
+  if (!Number.isFinite(amt) || amt < 100 || amt > 500) {
+    return res.status(400).json({ error: 'Deposit ₹100 se ₹500 ke beech hona chahiye' });
+  }
+  if (!utr || utr.length < 6) {
+    return res.status(400).json({ error: 'Sahi UTR ID daalein' });
+  }
+
+  const plan = calcDepositBonus(amt);
+  if (!Array.isArray(db.deposits)) db.deposits = [];
+
+  db.deposits.push({
+    id: 'DEP_' + Date.now() + '_' + Math.floor(Math.random() * 10000),
+    username: u,
+    amount: amt,
+    bonusPct: plan.bonusPct,
+    bonusAmt: plan.bonusAmt,
+    totalCredit: plan.totalCredit,
+    utrId: utr,
+    upiId: DEPOSIT_UPI_ID,
+    status: 'pending',
+    createdAt: new Date().toLocaleString('en-IN')
+  });
+
+  writeDb(db);
+  const myDeposits = db.deposits.filter((d) => d.username === u).slice(-10).reverse();
+  res.json({ ok: true, deposits: myDeposits });
+});
 });
 
 app.post('/api/bet', (req, res) => {
@@ -595,6 +656,29 @@ app.get('/', (req, res) => {
         <div id="wdStatus" style="margin-top:6px;font-size:13px"></div>
         <div id="userWithdrawals"></div>
       </div>
+            <div class="card" id="depositSection">
+        <div style="font-size:16px;font-weight:900">Deposit &amp; Bonus Plans</div>
+        <div class="muted">Min ₹100 — Max ₹500 | Plans: ₹100 (+5%), ₹300 (+12%), ₹500 (+25%)</div>
+
+        <div class="item-box">
+          <b>Admin UPI ID:</b> <span id="depUpiText">Jaatvipippb@axl</span><br>
+          <button type="button" class="ghost" style="margin-top:6px" onclick="copyDepositUpi()">Copy UPI ID</button>
+          <span id="copyUpiMsg" class="pos" style="margin-left:8px;font-size:12px"></span>
+        </div>
+
+        <div class="item-box">
+          <b>Bonus Plans:</b><br>
+          <button type="button" class="ghost" onclick="setDepositPlan(100)">₹100 (+5% = ₹105)</button>
+          <button type="button" class="ghost" onclick="setDepositPlan(300)">₹300 (+12% = ₹336)</button>
+          <button type="button" class="ghost" onclick="setDepositPlan(500)">₹500 (+25% = ₹625)</button>
+        </div>
+
+        <input id="depAmt" type="number" min="100" max="500" step="1" placeholder="Amount (₹100 - ₹500)" style="width:180px"><br>
+        <input id="depUtr" placeholder="UTR ID daalein" style="width:220px"><br>
+        <button type="button" class="ok" onclick="submitDeposit()">Submit Deposit</button>
+        <div id="depStatus" style="margin-top:6px;font-size:13px"></div>
+        <div id="userDeposits"></div>
+      </div>
 
       <div class="card">
         <div style="font-size:16px;font-weight:900">Help Center</div>
@@ -874,6 +958,67 @@ if (freshWins.length) {
       userWd = d.withdrawals || [];
       renderUser();
     }
+        let depositUpi = 'Jaatvipippb@axl';
+    let userDep = [];
+
+    function setDepositPlan(amt) {
+      document.getElementById('depAmt').value = amt;
+    }
+
+    function copyDepositUpi() {
+      const text = document.getElementById('depUpiText').innerText;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).catch(() => {});
+      }
+      const temp = document.createElement('textarea');
+      temp.value = text;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      temp.remove();
+      document.getElementById('copyUpiMsg').innerText = 'Copied!';
+      setTimeout(() => { document.getElementById('copyUpiMsg').innerText = ''; }, 2000);
+    }
+
+    async function loadDepositInfo() {
+      const r = await fetch('/api/deposit-info');
+      if (r.ok) {
+        const d = await r.json();
+        depositUpi = d.upiId || depositUpi;
+        document.getElementById('depUpiText').innerText = depositUpi;
+      }
+    }
+
+    function renderUserDeposits() {
+      const box = document.getElementById('userDeposits');
+      if (!box) return;
+      box.innerHTML = userDep.length
+        ? '<div class="muted" style="margin-top:8px">Aapki Deposit Requests:</div>' + userDep.map((d) =>
+            '<div class="item-box">₹<b>' + d.amount + '</b> (+' + d.bonusPct + '% = <b>₹' + d.totalCredit + '</b>) | UTR: <b>' + d.utrId + '</b> | <b>' + d.status.toUpperCase() + '</b><br><span class="muted">' + d.createdAt + '</span></div>'
+          ).join('')
+        : '';
+    }
+
+    async function submitDeposit() {
+      if (!currentUser) return alert('Pehle login karein');
+      const amount = Number(document.getElementById('depAmt').value);
+      const utrId = document.getElementById('depUtr').value;
+      const r = await fetch('/api/deposit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: currentUser.username, password: currentPass, amount, utrId })
+      });
+      const d = await r.json();
+      const el = document.getElementById('depStatus');
+      if (!r.ok) { el.className = 'neg'; el.innerText = d.error; return; }
+      el.className = 'pos';
+      el.innerText = 'Deposit request aur UTR submit ho gayi!';
+      document.getElementById('depUtr').value = '';
+      userDep = d.deposits || [];
+      renderUserDeposits();
+    }
+
+    loadDepositInfo();
 
     async function loginAdmin() {
       const pinVal = document.getElementById('adminPinInput').value;
