@@ -398,6 +398,31 @@ app.get('/', (req, res) => {
       font-size: 13px;
     }
     .help-mail-btn {
+    .right-header-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.aviator-teaser {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px dashed rgba(250, 204, 21, 0.75);
+  border-radius: 10px;
+  padding: 3px 8px;
+}
+.aviator-teaser-tag {
+  font-size: 8px;
+  font-weight: 900;
+  color: #fde047;
+}
+.aviator-plane-sticker {
+  font-size: 16px;
+  transform: rotate(-18deg);
+  display: inline-block;
+}
       background: linear-gradient(135deg, #f97316, #ec4899);
       color: #fff;
       text-decoration: none;
@@ -479,7 +504,13 @@ app.get('/', (req, res) => {
 <body>
   <div class="topbar">
     <div class="currency-badge" id="topCurrency">₹0.00</div>
-    <a class="help-mail-btn" href="mailto:jatakasora@gmail.com?subject=Game%20Help%20-%20Big%20%26%20Small">Help Email</a>
+    <div class="right-header-stack">
+  <a class="help-mail-btn" href="mailto:jatakasora@gmail.com?subject=Game%20Help%20-%20Big%20%26%20Small">Help Email</a>
+  <div class="aviator-teaser">
+    <span class="aviator-teaser-tag">COMING SOON</span>
+    <span class="aviator-plane-sticker">✈️</span>
+  </div>
+</div>
   </div>
 
   <div class="wrap">
