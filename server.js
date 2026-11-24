@@ -92,7 +92,7 @@ function settleCurrentRound(db, chosenNumber) {
     number: num,
     result: outcome
   });
-  if (db.game.history.length > 25) db.game.history.pop();
+while (db.game.history.length > 20) db.game.history.pop();
 
   db.game.round += 1;
   db.game.secondsLeft = 10;
@@ -120,6 +120,7 @@ setInterval(() => {
 
 app.get('/api/state', (req, res) => {
   const db = readDb();
+    db.game.history = (db.game.history || []).slice(0, 20);
   res.json({
     game: db.game,
     adminEmail: ADMIN_EMAIL,
