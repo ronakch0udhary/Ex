@@ -154,6 +154,7 @@ function todayKey() {
 }
 
 function pickOutcome() {
+  // 1. MANUAL मोड: जब एडमिन ने अगले राउंड फिक्स किए हों
   if (state.mode === 'MANUAL' && Array.isArray(state.manualQueue) && state.manualQueue.length > 0) {
     const next = state.manualQueue.shift();
     if (state.manualQueue.length === 0) {
@@ -161,9 +162,34 @@ function pickOutcome() {
     }
     return next === 'BIG' ? 'BIG' : 'SMALL';
   }
+
+  // 2. AUTO मोड: 1% जीत और 99% हार की संभावना
   state.mode = 'AUTO';
+  let totalSmall = 0;
+  let totalBig = 0;
+
+  for (const bet of state.currentBets) {
+    if (bet.round !== state.roundNumber) continue;
+    if (bet.choice === 'SMALL') {
+      totalSmall = roundMoney(totalSmall + Number(bet.amount || 0));
+    } else if (bet.choice === 'BIG') {
+      totalBig = roundMoney(totalBig + Number(bet.amount || 0));
+    }
+  }
+
+  // यदि किसी खिलाड़ी ने दांव लगाया है (एक तरफ ज़्यादा या एक ही तरफ दांव है)
+  if (totalBig !== totalSmall) {
+    const majorityChoice = totalBig > totalSmall ? 'BIG' : 'SMALL';
+    const minorityChoice = majorityChoice === 'BIG' ? 'SMALL' : 'BIG';
+
+    // केवल 1% (0.01) स्थिति में दांव वाली साइड जीतेगी, 99% स्थिति में उल्टा नतीजा आएगा
+    return Math.random() < 0.01 ? majorityChoice : minorityChoice;
+  }
+
+  // यदि दोनों तरफ बराबर दांव है या किसी ने दांव नहीं लगाया है, तो 50-50 रैंडम
   return Math.random() < 0.5 ? 'SMALL' : 'BIG';
 }
+
 
 function settleRound() {
   const outcome = pickOutcome();
