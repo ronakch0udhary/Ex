@@ -163,13 +163,18 @@ function pickOutcome() {
     return next === 'BIG' ? 'BIG' : 'SMALL';
   }
 
-  // 2. AUTO मोड: 1% जीत और 99% हार की संभावना
+  // 2. AUTO मोड
   state.mode = 'AUTO';
+  const roundBets = state.currentBets.filter((bet) => bet.round === state.roundNumber);
+
   let totalSmall = 0;
   let totalBig = 0;
+  const uniquePlayers = new Set();
 
-  for (const bet of state.currentBets) {
-    if (bet.round !== state.roundNumber) continue;
+  for (const bet of roundBets) {
+    if (bet.username) {
+      uniquePlayers.add(bet.username);
+    }
     if (bet.choice === 'SMALL') {
       totalSmall = roundMoney(totalSmall + Number(bet.amount || 0));
     } else if (bet.choice === 'BIG') {
@@ -177,18 +182,25 @@ function pickOutcome() {
     }
   }
 
-  // यदि किसी खिलाड़ी ने दांव लगाया है (एक तरफ ज़्यादा या एक ही तरफ दांव है)
-  if (totalBig !== totalSmall) {
-    const majorityChoice = totalBig > totalSmall ? 'BIG' : 'SMALL';
-    const minorityChoice = majorityChoice === 'BIG' ? 'SMALL' : 'BIG';
-
-    // केवल 1% (0.01) स्थिति में दांव वाली साइड जीतेगी, 99% स्थिति में उल्टा नतीजा आएगा
-    return Math.random() < 0.01 ? majorityChoice : minorityChoice;
+  // स्थिति A: सिंगल खिलाड़ी ने दांव लगाया हो -> 1% जीत, 99% हार
+  if (uniquePlayers.size === 1 && (totalSmall > 0 || totalBig > 0)) {
+    const playerChoice = totalBig > 0 ? 'BIG' : 'SMALL';
+    const oppositeChoice = playerChoice === 'BIG' ? 'SMALL' : 'BIG';
+    return Math.random() < 0.01 ? playerChoice : oppositeChoice;
   }
 
-  // यदि दोनों तरफ बराबर दांव है या किसी ने दांव नहीं लगाया है, तो 50-50 रैंडम
+  // स्थिति B: एक से ज़्यादा खिलाड़ी या दोनों तरफ दांव -> ज़्यादा राशि वाली साइड कभी नहीं आएगी
+  if (totalSmall > totalBig) {
+    return 'BIG';
+  }
+  if (totalBig > totalSmall) {
+    return 'SMALL';
+  }
+
+  // यदि दोनों तरफ बराबर राशि लगी हो या कोई दांव न लगा हो
   return Math.random() < 0.5 ? 'SMALL' : 'BIG';
 }
+
 
 
 function settleRound() {
