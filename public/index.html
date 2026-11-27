@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>REX11</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="top-bar">
+      <div class="wallet-pill" id="walletBox">₹0</div>
+      <div class="brand-logo">REX11</div>
+      <div class="user-tag" id="topUserBadge">Guest</div>
+    </header>
+
+    <div class="sim-note">मनोरंजन और सिमुलेशन संस्करण • केवल वर्चुअल बैलेंस</div>
+
+    <div id="resultBanner" class="result-banner hidden"></div>
+
+    <main id="tab-home" class="tab-view active">
+      <section class="round-card">
+        <div class="round-meta">
+          <span>राउंड #<strong id="roundNum">1</strong></span>
+          <span class="timer-badge" id="timerText">00:30</span>
+        </div>
+
+        <div class="choice-row">
+          <button type="button" class="choice-btn small-btn" data-choice="SMALL">SMALL</button>
+          <button type="button" class="choice-btn big-btn" data-choice="BIG">BIG</button>
+        </div>
+
+        <div class="bet-box">
+          <label for="betAmount">दांव की राशि (₹)</label>
+          <input type="number" id="betAmount" min="1" step="1" placeholder="राशि लिखें (उदा. 50)" />
+          <div class="quick-chips">
+            <button type="button" class="chip" data-chip="10">₹10</button>
+            <button type="button" class="chip" data-chip="50">₹50</button>
+            <button type="button" class="chip" data-chip="100">₹100</button>
+            <button type="button" class="chip" data-chip="200">₹200</button>
+          </div>
+          <button type="button" id="placeBetBtn" class="primary-btn">दांव लगाएं</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-title">पिछले 10 राउंड (ऑटो-डिलीट)</div>
+        <div id="publicHistoryList" class="history-pills"></div>
+      </section>
+    </main>
+
+    <main id="tab-history" class="tab-view">
+      <section class="card">
+        <div class="card-title">मेरी हिस्ट्री — पिछले 10 राउंड (WIN / LOSS)</div>
+        <div id="myHistoryList" class="list-stack"></div>
+      </section>
+    </main>
+
+    <main id="tab-profile" class="tab-view">
+      <section class="card" id="authSection">
+        <div class="card-title">प्रोफाइल लॉगिन / रजिस्टर <span id="slotsInfo" class="muted-sm"></span></div>
+        <div class="form-stack">
+          <input type="text" id="authUsername" placeholder="यूज़रनेम" />
+          <input type="password" id="authPassword" placeholder="पासवर्ड" />
+          <button type="button" id="authSubmitBtn" class="primary-btn">सेव और लॉगिन करें</button>
+        </div>
+      </section>
+
+      <section class="card hidden" id="loggedInProfile">
+        <div class="profile-head">
+          <div>
+            <div class="muted-sm">लॉगिन आईडी</div>
+            <div id="profileUsername" class="profile-name"></div>
+          </div>
+          <button type="button" id="logoutBtn" class="ghost-btn">लॉगआउट</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-title">डिपॉज़िट ऑफ़र (अनलिमिटेड)</div>
+        <div class="plan-grid">
+          <button type="button" class="plan-btn" data-plan="100">₹100<br /><span>+15% = ₹115</span></button>
+          <button type="button" class="plan-btn" data-plan="200">₹200<br /><span>+20% = ₹240</span></button>
+          <button type="button" class="plan-btn" data-plan="500">₹500<br /><span>+25% = ₹625</span></button>
+        </div>
+
+        <div id="depositPayBox" class="pay-box hidden">
+          <div class="upi-row">
+            <span>UPI ID:</span>
+            <strong id="upiDisplay">jaatvipippb@axl</strong>
+          </div>
+          <input type="text" id="utrInput" placeholder="UTR नंबर दर्ज करें" />
+          <button type="button" id="submitDepositBtn" class="success-btn">डिपॉज़िट रिक्वेस्ट भेजें</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-title">विड्रॉल (₹300 – ₹500 • 33% टैक्स • दिन में 1 बार)</div>
+        <div class="form-stack">
+          <input type="number" id="withdrawAmount" min="300" max="500" placeholder="राशि (300 से 500)" />
+          <input type="text" id="withdrawUpi" placeholder="अपनी UPI ID डालें" />
+          <div class="tax-preview" id="taxPreview">33% टैक्स कटौती के बाद: ₹0</div>
+          <button type="button" id="submitWithdrawBtn" class="warn-btn">विड्रॉल रिक्वेस्ट भेजें</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-title">हेल्प और सपोर्ट</div>
+        <p class="muted-sm">सीधे ईमेल करें: <strong>jatakasora@gmail.com</strong></p>
+        <a class="support-link" href="mailto:jatakasora@gmail.com?subject=REX11%20Support">ईमेल भेजें</a>
+      </section>
+
+      <div class="admin-footer">
+        <button type="button" id="adminIconBtn" class="admin-tiny-btn" title="Admin">⚙ Admin</button>
+      </div>
+    </main>
+
+    <main id="tab-admin" class="tab-view">
+      <section class="card" id="adminAuthCard">
+        <div class="card-title">एडमिन लॉगिन</div>
+        <div class="form-stack">
+          <input type="password" id="adminPassInput" placeholder="एडमिन पासवर्ड दर्ज करें" />
+          <button type="button" id="adminLoginBtn" class="primary-btn">पैनल खोलें</button>
+        </div>
+      </section>
+
+      <div id="adminDashboard" class="hidden">
+        <section class="card">
+          <div class="card-title">1. राउंड कंट्रोल (अगले 10 राउंड)</div>
+          <div class="mode-row">
+            <button type="button" id="modeAutoBtn" class="ghost-btn">AUTO मोड</button>
+            <button type="button" id="modeManualBtn" class="primary-btn">MANUAL मोड</button>
+          </div>
+          <div class="form-stack mt-10">
+            <input type="text" id="manualSeqInput" placeholder="1 = SMALL, 2 = BIG (उदा. 1212112211)" />
+            <button type="button" id="saveSeqBtn" class="success-btn">सीक्वेंस सेव करें</button>
+            <div class="muted-sm" id="adminRoundStatus"></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">2. यूज़र आईडी में राशि डालें</div>
+          <div class="form-stack">
+            <input type="text" id="creditUsername" placeholder="यूज़रनेम" />
+            <input type="number" id="creditAmount" min="1" placeholder="राशि (₹)" />
+            <button type="button" id="creditBtn" class="success-btn">बैलेंस जोड़ें</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">3. डिपॉज़िट रिक्वेस्ट्स</div>
+          <div id="adminDepositList" class="list-stack"></div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">4. विड्रॉल रिक्वेस्ट्स (33% टैक्स सहित)</div>
+          <div id="adminWithdrawList" class="list-stack"></div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">5. सभी यूज़र्स <span id="adminUserCount" class="muted-sm"></span></div>
+          <div id="adminUsersList" class="list-stack"></div>
+        </section>
+      </div>
+    </main>
+
+    <nav class="bottom-nav">
+      <button type="button" class="nav-btn active" data-tab="tab-home">
+        <span>🏠</span>
+        <small>होम</small>
+      </button>
+      <button type="button" class="nav-btn" data-tab="tab-history">
+        <span>📜</span>
+        <small>हिस्ट्री</small>
+      </button>
+      <button type="button" class="nav-btn" data-tab="tab-profile">
+        <span>👤</span>
+        <small>प्रोफाइल</small>
+      </button>
+    </nav>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="/app.js"></script>
+</body>
+                 </html>
+                 
